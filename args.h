@@ -18,13 +18,13 @@
 
 struct options {
 	char *description, *override_name, *run_command, *input_filename, *output_filename;
-	bool verbose, create_desktop, exe;
+	bool verbose, create_desktop;
 };
 
 static struct argp_option argp_options[] = {
 	{OPT_VERBOSE, 'v', 0, 0, "print the contents of each file"},
-	{OPT_DESCRIPTION, 'd', "DESCRIPTION", 0, "set the description for the application (does nothing if -desktop is not set)"},
-	{OPT_DESKTOP, 'D', 0, 0, "create a .desktop file in your /usr/share/applications directory (may require sudo privileges)"},
+	{OPT_DESCRIPTION, 'd', "DESCRIPTION", 0, "set the description for the application (does nothing if -D is not set)"},
+	{OPT_DESKTOP, 'D', 0, 0, "create a .desktop file, used by application launchers"},
 	{OPT_NAME, 'i', "PROGNAME", 0, "specify the input filename"},
 	{OPT_OUTPUT, 'o', "FILENAME", 0, "specify the output filename (will be the input without the extension if not specified)"},
 	{OPT_RUN, 'r', "COMMAND", 0, "specify the command used to run the application"},
@@ -34,6 +34,7 @@ static struct argp_option argp_options[] = {
 
 static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 	struct options* opts = state->input;
+	bool is_exe = false;;
 
 	switch(key) {
 	case 'd':
@@ -62,10 +63,11 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 		break;
 	case 'e':
 		debug("parsed winexe");
-		opts->exe = true;
+		opts->run_command = "wine";
+		is_exe = true;
 		break;
 	case ARGP_KEY_END:
-		if(opts->input_filename == NULL || opts->run_command == NULL)
+		if(opts->input_filename == NULL || (opts->run_command == NULL && !(is_exe)))
 			argp_usage(state);
 		break;
 	default:
@@ -74,6 +76,6 @@ static error_t parse_opt(int key, char* arg, struct argp_state* state) {
 	return 0;
 }
 
-static char args_doc[] = "-i PROGNAME -r COMMAND...";
+static char args_doc[] = "-i PROGNAME [-r COMMAND | -e]...";
 static char doc[] = "this utility creates an executable setup for non-native applications";
 struct argp argparser = {argp_options, parse_opt, args_doc, doc};
