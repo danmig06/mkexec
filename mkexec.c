@@ -7,8 +7,6 @@
 #include <assert.h>
 #include <errno.h>
 #include "args.h"
-#define SCRIPT_FMT "#!/bin/sh\n"  \
-		   "%s %s\n"
 
 void create_executable(struct options* opts) {
 	assert(opts->output_file_path != NULL && "This shouldn't happen, malloc() may have failed?");
@@ -18,9 +16,9 @@ void create_executable(struct options* opts) {
 		printf("FATAL: could not create file '%s'\n", opts->output_file_path);
 		exit(EXIT_FAILURE);
 	}
-	fprintf(script, SCRIPT_FMT, opts->run_command, opts->input_file_path);
+	fprintf(script, "#!/bin/sh\n%s %s\n", opts->run_command, opts->input_file_path);
 	if(opts->verbose)
-		printf("contents of '%s':\n" SCRIPT_FMT, get_path_filename(opts->output_file_path), opts->run_command, opts->input_file_path);
+		printf("contents of '%s':\n#!/bin/sh\n%s %s\n", get_path_filename(opts->output_file_path), opts->run_command, opts->input_file_path);
 
 	fclose(script);
 }
@@ -29,20 +27,20 @@ void write_desktop_file(FILE* desktop_file, char* name, char* comment, char* exe
 	char* exec_realpath = realpath(exec_filename, NULL);
 	if(exec_realpath == NULL) {
 		if(errno != ENOENT)
-			printf("WARNING: could not determine the location of '%s', desktop file creation was aborted", exec_filename);
+			printf("ERROR: could not determine the location of '%s', desktop file creation was aborted", exec_filename);
 		else
-			printf("WARNING: '%s' does not exist", exec_filename);
+			printf("ERROR: '%s' does not exist", exec_filename);
 		fclose(desktop_file);
 		exit(EXIT_FAILURE);
 	}
 	if(name == NULL)
 		name = exec_filename;
-	fprintf(desktop_file, "[Desktop Entry]\nName=%s\n", name);
+	fprintf(desktop_file, "[Desktop Entry]\nName=%s\nType=Application\n", name);
 	if(comment)
 		fprintf(desktop_file, "Comment=%s\n", comment);
 	fprintf(desktop_file, "Exec=%s\n", exec_realpath);
 	if(verbose) {
-		printf("[Desktop Entry]\nName=%s\n", name);
+		printf("[Desktop Entry]\nName=%s\nType=Application\n", name);
 		if(comment)
 			printf("Comment=%s\n", comment);
 		printf("Exec=%s\n", exec_realpath);
@@ -59,7 +57,7 @@ void create_desktop_file(struct options* opts) {
 	int desktop_fd = open(get_path_filename(opts->output_file_path), O_WRONLY | O_CREAT, 0666);
 	FILE* desktop_file = fdopen(desktop_fd, "w");
 	if(desktop_file == NULL) {
-		printf("FATAL: could not create file '%s'\n", get_path_filename(opts->output_file_path));
+		printf("ERROR: could not create file '%s'\n", get_path_filename(opts->output_file_path));
 		exit(EXIT_FAILURE);
 	}
 	if(opts->verbose) printf("contents of '%s':\n", get_path_filename(opts->output_file_path));
